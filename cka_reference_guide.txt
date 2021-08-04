@@ -1,6 +1,13 @@
 Cka reference
 
-creatimg pod with specific image  
+#creatimg pod with specific image  
 
 	kubectl run nginx --image=nginx
 
+#pod with the name redis and with the image redis123
+ 	
+	Create a new pod with the name redis and with the image redis123
+
+#pod  definition  file 
+
+      kubectl edit pod redis
