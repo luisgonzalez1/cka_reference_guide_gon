@@ -1,0 +1,6 @@
+Cka reference
+
+creatimg pod with specific image  
+
+	kubectl run nginx --image=nginx
+
