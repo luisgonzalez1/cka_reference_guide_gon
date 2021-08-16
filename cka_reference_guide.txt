@@ -1,8 +1,37 @@
 Cka reference
 
+basic pod descriptor 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-test
+spec:
+  containers:
+  - image: redis
+    name: redis-test
+
 #creatimg pod with specific image  
 
 	kubectl run nginx --image=nginx
+	
+	#creating pod on specific port
+	
+     	kubectl  run custom-nginx --image=nginx --port=8080 
+		
+		#pod description with port  
+		
+		 spec:
+		  containers:
+		  - image: nginx
+			imagePullPolicy: Always
+			name: custom-nginx
+			ports:
+			- containerPort: 8080
+			  protocol: TCP 
+    
+	#creating pod and service 
+	    kubectl run httpd --image=httpd:alpine --port 80 --expose 
 
 #pod with the name redis and with the image redis123
  	
@@ -11,3 +40,816 @@ Cka reference
 #pod  definition  file 
 
       kubectl edit pod redis
+	  
+# Create a static pod named static-busybox that uses the busybox image and the command sleep 1000  , static pods name will end with the name of the pod 
+      
+	  kubectl run --restart=Never --image=busybox static-busybox --dry-run=client -o yaml --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml
+
+#view replica set 
+
+     kubectl get rs 
+	 
+#view replica controller  
+
+     kubectl get rc
+	 
+#sample replica set yaml definitio
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: replicaset-1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+		
+#delete replica set
+
+   kubectl delete replicaset <replicaset-name> 
+   kubectl delete -f <file-name>.yaml
+   
+# edit replicaset and apply new changes on pods  
+
+  Run the command: kubectl edit replicaset new-replica-set, modify the image name and then save the file.
+  Delete the previous pods to get the new ones with the correct image.
+  For this, run the command: kubectl delete po <pod-name>
+  
+# upgrade scale 
+
+   1) kubectl scale rs new-replica-set --replicas=5 
+   
+   2)kubectl edit rs  new-replica-set 
+      edit replicas key:value 
+   
+   
+Create an NGINX Pod
+
+kubectl run nginx --image=nginx
+
+Generate POD Manifest YAML file (-o yaml). Don’t create it(–dry-run)
+
+kubectl run nginx --image=nginx --dry-run=client -o yaml
+
+Create a deployment
+
+kubectl create deployment --image=nginx nginx
+
+Generate Deployment YAML file (-o yaml). Don’t create it(–dry-run)
+
+kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
+
+Generate Deployment YAML file (-o yaml). Don’t create it(–dry-run) with 4 Replicas (–replicas=4)
+
+kubectl create deployment --image=nginx nginx --dry-run=client -o yaml > nginx-deployment.yaml
+
+Save it to a file, make necessary changes to the file (for example, adding more replicas) and then create the deplo
+
+
+#getting deployment 
+
+  kubectl get deployment
+  
+#generalized information about a kuberneties componnet 
+
+  kubectl explain deployment 
+ 
+# creating new deployment 
+
+  kubectl create -f  deployment-defionition.yaml 
+  
+# apply a change to a deployment-defionition.yaml  modification  
+
+  kubectl apply  -f  deployment-defionition.yaml 
+  
+# getting exact number of namespaces  
+
+  kubectl get ns --no-headers | wc -l  
+  
+# examine kluberneties service  
+   
+  kubectl describe  svc kubernetes
+  
+# examine kluberneties deploymet  
+  
+  kubectl describe   deployments simple-webapp-deployment
+  
+# simple service definition 
+
+  ---
+apiVersion: v1
+kind: Service
+metadata:
+  name:
+spec:
+  type:
+  ports:
+    - targetPort:
+      port:
+      nodePort:
+  selector:
+    name:
+	
+#example service type node port 
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  type: NodePort
+  ports:
+    - targetPort: 8080
+      port: 8080
+      nodePort: 30080
+  selector:
+    name: simple-webapp
+	
+	
+#Generate Deployment YAML file (-o yaml). Don’t create it(–dry-run)
+
+  kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
+
+ 
+
+#Generate Deployment with 4 Replicas
+
+  kubectl create deployment nginx --image=nginx --replicas=4
+
+ 
+
+#You can also scale a deployment using the kubectl scale command.
+
+  kubectl scale deployment nginx --replicas=4 
+
+#Another way to do this is to save the YAML definition to a file and modify
+
+  kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > nginx-deployment.yaml
+
+ 
+
+#You can then update the YAML file with the replicas or any other field before creating the deployment.
+
+ 
+#Create a Service named redis-service of type ClusterIP to expose pod redis on port 6379
+
+   kubectl expose pod redis --port=6379 --name redis-service --dry-run=client -o yaml
+
+(This will automatically use the pod’s labels as selectors) 
+
+   kubectl create service clusterip redis --tcp=6379:6379 --dry-run=client -o yaml (This will not use the pods labels as selectors, instead it will assume selectors as app=redis. You cannot pass in selectors as an option. So it does not work very well if your pod has a different label set. So generate the file and modify the selectors before creating the service)
+
+ 
+
+#Create a Service named nginx of type NodePort to expose pod nginx’s port 80 on port 30080 on the nodes:
+
+   kubectl expose pod nginx --type=NodePort --port=80 --name=nginx-service --dry-run=client -o yaml	
+    
+   kubectl create service nodeport nginx --tcp=80:80 --node-port=30080 --dry-run=client -o yaml
+
+#This will not use the pods labels as selectors)
+
+#Both the above commands have their own challenges. While one of it cannot accept a selector the other cannot accept a node port. I would recommend going with the `kubectl expose` command. If you need to specify a node port, generate a definition file using the same command and manually input the nodeport before creating the service.	
+
+#creating a namespaces
+
+  kubectl create ns dev-ns 
+
+#Create a new deployment called redis-deploy in the dev-ns namespace with the redis image. It should have 2 replicas.
+  
+  kubectl create deployment redis-deploy --image=redis -n dev-ns --replicas=2
+  
+#scheduler will take care of scheduling pods on nodes  , so if pods get stuck in pending it might be because checduler 
+
+#getting nodes on cluster 
+
+  kubectl get ndoes  
+  
+  
+# to schedule a pod to an specific node add nodeName: <node> on pods descriptor 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  nodeName: node01
+  containers:
+  -  image: nginx
+     name: nginx
+	 
+# show labels  
+ 
+   kubectl get pods --show-labels
+	 
+# serach pods with a specific selector  
+
+  kubectl get pods --selector env=dev 
+  kubectl get all --selector env=prod,bu=finance,tier=frontend
+  
+  # count  
+  
+	kubectl get pods --selector env=dev --no-headers | wc -l
+	kubectl get all --selector env=prod --no-headers | wc  -l
+	
+# taint tell the nodes to only accept nodes with certiain tolerations
+
+# creating a taint to a node  
+
+  kubectl taint  nodes node01 spray=mortein:NoSchedule 
+   
+# removing taint minus "-" singn at the end of   spray=mortein:NoSchedul- 
+
+  kubectl taint  nodes node01 spray=mortein:NoSchedul-
+  
+#pods descriptor with taint sample 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: bee
+  name: bee
+spec:
+  containers:
+  - image: nginx
+    name: bee
+    resources: {}	
+  tolerations:
+  - key: spray
+    value: mortein
+    effect: NoSchedule
+    operator: Equal
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+#labeling nodes  
+ kubectl label nodes nodes1 size=Large
+ 
+#adding  nodeSelector to pods definition
+
+apiVersion: v1
+kind: Pod
+metadata:   
+  name: bee
+spec:
+  containers:
+  - image: nginx
+    name: bee     
+  nodeSelector:
+    size: Large
+	
+#adding affinity to pods 
+
+  spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: Always
+        name: nginx
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: color
+                operator: In
+                values:
+                - blue
+
+#affinity that look if label exist on the node-port
+  spec:
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists 
+
+#limit range  will specify default resoirce values pods will bee created   , this is set at the nemaspace level  
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mem-limit-range
+spec:
+  limits:
+  - default:
+      memory: 512Mi
+    defaultRequest:
+      memory: 256Mi
+    type: Container
+	
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cpu-limit-range
+spec:
+  limits:
+  - default:
+      cpu: 1
+    defaultRequest:
+      cpu: 0.5
+    type: Container
+	
+#Basic Daemonset config 
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: elasticsearch
+  name: elasticsearch
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - image: k8s.gcr.io/fluentd-elasticsearch:1.20
+        name: fluentd-elasticsearch
+
+#kubelet config file location 
+   
+    ps -aux | grep /usr/bin/kubelet 
+	
+	  #look for --config=/var/lib/kubelet/config.yaml cd 
+	  
+#static pods file location , look for staticpod value on kubelet config.yaml
+
+      	  grep -i staticpod /var/lib/kubelet/config.yaml 
+		  
+		  # /etc/kubernetes/manifests  --default manifect path when creating clustedr with kubeadm 
+		  
+#default scheduler port 10251 
+
+#check if a pod its being used 
+
+  netstat -natulp | grep  10251
+ 
+# to set multiple scheduler add bellow commands to the second scheduler 
+- --leader-elect=false
+- --port=10282
+- --scheduler-name=my-scheduler
+- --secure-port=0
+
+# sample config  
+   ---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: my-scheduler
+    tier: control-plane
+  name: my-scheduler
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-scheduler
+    - --authentication-kubeconfig=/etc/kubernetes/scheduler.conf
+    - --authorization-kubeconfig=/etc/kubernetes/scheduler.conf
+    - --bind-address=127.0.0.1
+    - --kubeconfig=/etc/kubernetes/scheduler.conf
+    - --leader-elect=false
+    - --port=10282
+    - --scheduler-name=my-scheduler
+    - --secure-port=0
+    image: k8s.gcr.io/kube-scheduler:v1.19.0
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      failureThreshold: 8
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 10282
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    name: kube-scheduler
+    resources:
+      requests:
+        cpu: 100m
+    startupProbe:
+      failureThreshold: 24
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 10282
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    volumeMounts:
+    - mountPath: /etc/kubernetes/scheduler.conf
+      name: kubeconfig
+      readOnly: true
+  hostNetwork: true
+  priorityClassName: system-node-critical
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/scheduler.conf
+      type: FileOrCreate
+    name: kubeconfig
+status: {}
+
+  
+# use  kubectl explain pod --recursive to get all possible values for specific dsescriptor 
+
+  kubectl explain pod --recursive    
+  
+  kubectl explain pod  --recursive | less 
+  
+  kubectl explain pod  --recursive | grep  volumeMount -A8
+
+# add make a custom csheduler to create pod  use schedulerName: my-scheduler 
+
+  # example 
+  
+apiVersion: v1 
+kind: Pod 
+metadata:
+  name: nginx 
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - image: nginx
+    name: nginx
+	
+	
+#kuberneties does not comes with a built monitoring solution 
+  
+  solutions : 
+  Heapster -> Deprecated 
+  Metrcis Server  - > in memory  
+  Prometeus  
+  Elastic Stack  
+  Datadof 
+  dynatrace
+  
+#kubelet cAdvisor  responsible  of retrieving metrics and makes them available through the kube-apiserver
+
+   kubectl top node 
+   kubectl top pode
+   
+ #installing metrics server  
+ 
+ git clone https://github.com/kodekloudhub/kubernetes-metrics-server.git 
+ 
+ kubectl create -f  kubernetes-metrics-server
+ 
+ kubectl top node
+ 
+#to see deployment status 
+
+  kubectl rollout status deployment/myapp-deployemt
+  
+#deployment stategy  
+
+  destroy all instanses and create new once  --->> Recreate strategy 
+  
+  destroy one instace and create one instace  --->  Rolloing update 
+  
+#rollback to a previous version 
+ 
+  kubectl rollour undo deployment/myapp-deployment 
+  
+#Rolloing update and Rollback 
+
+
+Create --> kubectl create -f  deployment-definition.yaml
+
+Get    --> kubectl get deployment 
+
+Update --> kubectl apply -f deployment-deginition.yaml  
+           kubectl set image deploymnet/myapp-deployemt <container_name>=<image_name>
+Status --> kubectl rollout status deployment/myapp-deplyment
+           kubectl rollout history deployment/myapp-deplyment
+Rollback   kubectl rollout undo deployment/myapp-deplyment
+           kubectl rollout latest deployment/myapp-deplyment
+		   kubectl rollout cancel  deployment/myapp-deplyment
+		   
+#check StategyType fror the stategy 
+  
+#pod description with basic commad values
+
+apiVersion: v1
+kind: Pod 
+metadata:
+  name: ubuntu-sleeper-2
+spec:
+  containers:
+  - name: ubuntu
+    image: ubuntu
+    command:
+      - "sleep"
+      - "5000"  
+#with arguments 
+	  
+apiVersion: v1"
+kind: Pod
+metadata:
+  name: webapp-green
+  labels:
+      name: webapp-green
+spec:
+  containers:
+  - name: simple-webapp
+    image: kodekloud/webapp-color
+    command: ["python", "app.py"]
+    args: ["--color", "pink"]
+	
+	
+# creating secrets 
+
+# imperative  
+   
+    kubectl create secret generic 
+	
+	<secret-name> --from-literal=<key>=<value>
+	
+	#example 
+	
+	kubectl create secret generic \
+	app-secret --from-literal=DB_HOST=mysql \
+	           --from-literal=GDB_USER=root
+			   --from-literal=GDB_PASSWORD=password
+			   
+    kubectl create secret generic
+	
+	<secret-name> --from-file=<path-to-file>
+	
+# descriptive 
+
+    kubectl create -f  <secrets descriptor>.yaml  
+
+    #values added on the yaml file need to be base 64 encoded  
+
+    #encoding values onnbase 64 
+
+    echo -n 'mysql' | base64 	
+			    
+#get secrets 
+
+   kubectl get secrets 
+   
+   kubectl describe secrets app-secrets
+   
+#decoding data 
+
+  echo -n 'mysql' | --decode
+  
+#configuring with pods  
+
+  spec:
+    container:
+	   envFrom:
+	   - secretRef
+            name: app-secret 	      
+
+# you can as well add secrets as volumes 
+
+#multi container pod basic definition 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: yellow
+spec:
+  containers:
+  - image: busybox
+    name: lemon
+
+  - image: redis
+    name: gold
+	
+#init container sample  
+
+  containers:
+  - command:
+    - sh
+    - -c
+    - echo The app is running! && sleep 3600
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    name: purple-container
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-kcwpv
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  initContainers:
+  - command:
+    - sh
+    - -c
+    - sleep 600
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    name: warm-up-1
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-kcwpv
+      readOnly: true
+	  
+#evition pod timeout  , the time ndoe can be down before pods runnning are removed and schedule in other nodes  
+
+#remove pods from nodes andn makes then unschedulable  
+
+   kubectl drain node-1  
+   
+#remove unschedulable from nodes and allows for new pods scheduling  
+
+  kubectl uncordon node-1 
+  
+#marks node as unschedulable but do not delete pods  from node 
+
+  kubectl cordon node-1 
+  
+#View plan for upgrading kuberneties with kubeadm 
+
+ kubeadm upgrade plan 
+ 
+#upgrading kubelet 
+
+  apt-get upgrade -y kubeadm=1.12.0-00
+  
+  apt-get upgrade -y kubelet=1.12.0-00
+  
+  kubeadm update node config  --kubelet-version v1.12.0 
+  
+  systemctl restart kubelet  
+ 
+# getting nodes os version 
+  
+  cat  /etc/*release*
+  
+  
+#upgrading kubeadm and master 
+
+
+On the controlplane node, run the command run the following commands:
+
+    apt update
+#This will update the package lists from the software repository.
+
+	apt install kubeadm=1.20.0-00
+#This will install the kubeadm version 1.20
+
+	kubeadm upgrade apply v1.20.0
+#This will upgrade kubernetes controlplane. Note that this can take a few minutes.
+
+	apt install kubelet=1.20.0-00 This will update the kubelet with the version 1.20.
+
+#You may need to restart kubelet after it has been upgraded.
+	Run: systemctl restart kubelet
+
+ 
+#upgrading worker
+
+ apt update
+#This will update the package lists from the software repository.
+
+
+ apt install kubeadm=1.20.0-00
+#This will install the kubeadm version 1.20
+
+
+ kubeadm upgrade node
+#This will upgrade the node01 configuration.
+
+
+ apt install kubelet=1.20.0-00 This will update the kubelet with the version 1.20.
+
+
+#You may need to restart kubelet after it has been upgraded.
+ Run: systemctl restart kubelet
+
+
+Type exit or enter CTL + d to go back to the controlplane node.
+
+
+#taking etcd backup  
+
+  root@controlplane:~# ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 \
+--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+--cert=/etc/kubernetes/pki/etcd/server.crt \
+--key=/etc/kubernetes/pki/etcd/server.key \
+snapshot save /opt/snapshot-pre-boot.db
+
+#restore  ETCD with backup 
+
+  ETCDCTL_API=3 etcdctl  --data-dir /var/lib/etcd-from-backup \
+snapshot restore /opt/snapshot-pre-boot.db
+
+
+# Certificate Authority key creation 
+
+#Generate key 
+
+ openssl genrsa -out ca.key 2048 
+ 
+#Certificate Signing request  
+
+  openssl req -new -key ca.key -subj "/CN=KUBERNETES-CA" -out ca.csr
+  
+#Sign Certificates 
+
+  openssl X509 -req -in ca.csr -signkey ca.key -out ca.crt
+  
+  
+# ADMIN USER keys and and signature example  
+
+#Generate key 
+
+ openssl genrsa -out admin.key 2048 
+ 
+#Certificate Signing request  
+
+  openssl req -new -key admin.key -subj "/CN=kube-admin/OU=system:masters" -out admin.csr
+  
+#Sign Certificates 
+
+  openssl X509 -req -in admin.csr -signkey ca.key -out ca.crt
+
+  
+#kube-apiserver common names  
+
+ kebernetes
+ kubernetes.default 
+ kubernetes.default.svc
+ kubernetes.default.svc.cluster.local 
+ 
+#open certs and view information
+  
+  openssl x509 -in /etc/kubernetes/pki/apiserver.crt  -text -noout
+  
+#inspect OS service logs  
+
+  journalctl -u etcd.service -l 
+  
+# controller manager its the one that takes care of managing sing requests 
+
+# basic kuberbetes Certificate Signing Request yaml 
+
+  apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: akshay
+spec:
+  groups:
+  - system:authenticated
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZqQ0NBVDRDQVFBd0VURVBNQTBHQTFVRUF3d0dZV3R6YUdGNU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQXY4azZTTE9HVzcrV3JwUUhITnI2TGFROTJhVmQ1blNLajR6UEhsNUlJYVdlCmJ4RU9JYkNmRkhKKzlIOE1RaS9hbCswcEkwR2xpYnlmTXozL2lGSWF3eGVXNFA3bDJjK1g0L0lqOXZQVC9jU3UKMDAya2ZvV0xUUkpQbWtKaVVuQTRpSGxZNDdmYkpQZDhIRGFuWHM3bnFoenVvTnZLbWhwL2twZUVvaHd5MFRVMAo5bzdvcjJWb1hWZTVyUnNoMms4dzV2TlVPL3BBdEk4VkRydUhCYzRxaHM3MDI1ZTZTUXFDeHUyOHNhTDh1blJQCkR6V2ZsNVpLcTVpdlJNeFQrcUo0UGpBL2pHV2d6QVliL1hDQXRrRVJyNlMwak9XaEw1Q0ErVU1BQmd5a1c5emQKTmlXbnJZUEdqVWh1WjZBeWJ1VzMxMjRqdlFvbndRRUprNEdoayt2SU53SURBUUFCb0FBd0RRWUpLb1pJaHZjTgpBUUVMQlFBRGdnRUJBQi94dDZ2d2EweWZHZFpKZ1k2ZDRUZEFtN2ZiTHRqUE15OHByTi9WZEdxN25oVDNUUE5zCjEwRFFaVGN6T21hTjVTZmpTaVAvaDRZQzQ0QjhFMll5Szg4Z2lDaUVEWDNlaDFYZnB3bnlJMVBDVE1mYys3cWUKMkJZTGJWSitRY040MDU4YituK24wMy9oVkN4L1VRRFhvc2w4Z2hOaHhGck9zRUtuVExiWHRsK29jQ0RtN3I3UwpUYTFkbWtFWCtWUnFJYXFGSDd1dDJveHgxcHdCdnJEeGUvV2cybXNqdHJZUXJ3eDJmQnErQ2Z1dm1sVS9rME4rCml3MEFjbVJsMy9veTdqR3ptMXdqdTJvNG4zSDNKQ25SbE41SnIyQkZTcFVQU3dCL1lUZ1ZobHVMNmwwRERxS3MKNTdYcEYxcjZWdmJmbTRldkhDNnJCSnNiZmI2ZU1KejZPMUU9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=
+  signerName: kubernetes.io/kube-apiserver-client
+  usages:
+  - client auth
+  
+#encoding 
+ 
+ cat jane.csr | base64 
+ 
+#once create run  
+
+  kubectl apply -f akshay-csr.yaml
+  
+#to see signing request run  
+
+  kubectl get csr
+
+# to approve request 
+
+  kubectl certificate approve akshay
+  
+# deny request 
+
+  kubectl certificate deny agent-smith
+  
+# change context 
+  
+  kubectl config --kubeconfig=/root/my-kube-config use-context research 
+  
