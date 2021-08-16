@@ -837,6 +837,8 @@ spec:
 
   kubectl apply -f akshay-csr.yaml
   
+  
+  
 #to see signing request run  
 
   kubectl get csr
@@ -852,4 +854,173 @@ spec:
 # change context 
   
   kubectl config --kubeconfig=/root/my-kube-config use-context research 
+  
+#viewing avaiable apis 
+
+  http://localhost:6443/apis -k | grep "name"
+  
+#to set an spacific authorization method , specify on 
+
+ --authorization-mode=Node,RBAC,Webhook 
+ 
+#getting RBAC resources 
+
+  kubectl get roles
+  
+  kubectl get roles --all-namespaces
+  
+  kubectl get roles -A
+  
+#getting RBAC bindings  
+
+  kubectl get rolebindings 
+  
+#Check access 
+
+  kubectl auth can-i create deployments
+  
+#Check access another user
+
+  kubectl auth can-i create deployments --as dev-user 
+  
+  
+#declarative roles and rolesbinding basic descriptor 
+
+#pod resources
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "create"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: dev-user-binding
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+  
+  
+  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  
+#deployments resources  
+
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: blue
+  name: deploy-role
+rules:
+- apiGroups: ["apps", "extensions"]
+  resources: ["deployments"]
+  verbs: ["create"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: dev-user-deploy-binding
+  namespace: blue
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: deploy-role
+  apiGroup: rbac.authorization.k8s.io
+  
+
+#imperative commands  
+
+#To create a Role 
+
+  kubectl create role developer --namespace=default --verb=list,create --resource=pods
+  
+#To create a rolebinding  
+
+  kubectl create rolebinding dev-user-binding --namespace=default --role=developer --user=dev-user
+ 
+
+Cluster role samples  
+
+#giving admin access to nodes  
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: node-admin
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "watch", "list", "create", "delete"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: michelle-binding
+subjects:
+- kind: User
+  name: michelle
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-admin
+  apiGroup: rbac.authorization.k8s.io
+  
+  
+#giving storage access  
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: storage-admin
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["get", "watch", "list", "create", "delete"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "watch", "list", "create", "delete"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: michelle-storage-admin
+subjects:
+- kind: User
+  name: michelle
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: storage-admin
+  apiGroup: rbac.authorization.k8s.io
+  
+#default docker registry  
+
+ docker.io
+ 
+#creating secret docker credentials
+
+ kubectl create secret docker-registry private-reg-cred --docker-username=dock_user --docker-password=dock_password --docker-server=myprivateregistry.com:5000 --docker-email=dock_user@myprivateregistry.com
+  
+# imagepullsecrets example 
+
+  private-reg-cred
+  
   
