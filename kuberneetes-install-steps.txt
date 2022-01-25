@@ -1,0 +1,162 @@
+#getting os version 
+
+cat /etc/os-release
+
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+	sudo modprobe br_netfilter
+	lsmod | grep br_netfilter
+
+#Ensure  net.bridge.bridge-nf-call-iptables its set to 1 
+     sysctl -a | grep  -i  net.bridge.bridge-nf-call-iptables
+
+#Kernel Parameters 
+
+
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+br_netfilter
+EOF
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sudo sysctl --system
+
+
+#installing container runtime https://kubernetes.io/docs/setup/production-environment/container-runtimes/ 
+
+#docker https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker 
+
+#docker installation instructions https://docs.docker.com/engine/install/ubuntu/ 
+
+sudo  -i  # log as root user 
+
+#Install using the repository 
+ 
+  #Set up the repository 
+   
+    #1) Update the apt package index and install packages to allow apt to use a repository over HTTPS: 
+	   
+	   
+	        apt-get update
+		    apt-get install \
+			apt-transport-https \
+			ca-certificates \
+			curl \
+			gnupg \
+			lsb-release
+			
+    #2) Add Docker’s official GPG key:
+	
+	       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+		   
+	3) Set up the stable repository	   
+	
+	      echo \
+		  "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+		  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+				   
+		   
+#Install Docker Engine 
+
+    #1) Update the apt package index, and install the latest version of Docker Engine and containerd
+
+        apt-get update 
+        apt-get install docker-ce docker-ce-cli containerd.io		
+		
+	
+	#2) Verify that Docker Engine is installed correctly by running the hello-world image
+   
+        sudo docker run hello-worlds   
+		   
+		   
+#Install docker daemon  https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker 
+
+
+    mkdir /etc/docker
+	cat <<EOF | sudo tee /etc/docker/daemon.json
+	{
+	  "exec-opts": ["native.cgroupdriver=systemd"],
+	  "log-driver": "json-file",
+	  "log-opts": {
+		"max-size": "100m"
+	  },
+	  "storage-driver": "overlay2"
+	}
+	EOF		   
+	
+	
+# Restart Docker and enable on boot:
+
+	sudo systemctl enable docker
+	sudo systemctl daemon-reload
+	sudo systemctl restart docker
+	
+# Verify docker its running 
+
+   systemctl status docker.service
+   
+   
+#Installing kubeadm, kubelet and kubectl
+
+
+#Update the apt package index and install packages needed to use the Kubernetes apt repository:
+
+	sudo apt-get update
+	sudo apt-get install -y apt-transport-https ca-certificates curl
+	
+#Download the Google Cloud public signing key:
+
+   sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+   
+#Add the Kubernetes apt repository:
+
+   echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+   
+#Update apt package index, install kubelet, kubeadm and kubectl, and pin their version:
+
+	sudo apt-get update
+	sudo apt-get install -y kubelet kubeadm kubectl
+	sudo apt-mark hold kubelet kubeadm kubectl
+	
+#Cgroup driver not nesessary due to using docker 
+
+
+#Creating a cluster with kubeadm  https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ 
+
+#Only on master node  
+
+#--pod-network-cidr  must not conflict with nodes cidr ips  
+
+#master node ip address can be checked using  ifconfig   , IN AWS nodes interface was created with the name of  ens5:
+
+	kubeadm init --pod-network-cidr 10.244.0.0/16 --apiserver-advertise-address=172.31.27.47
+
+#once executed instructions on how to add cerdentials for necessary users and how to add node to clusters  will be provided  
+
+#logout of root user before sunning bellow  
+#To start using your cluster, you need to run the following as a regular user: ( provide necesary credentials for comunication on the cluster ) 
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+#!!!!!!Save bellow command for reference  but do not use yet !!!!!!!
+#allows users to join the cluster		   
+kubeadm join 172.31.27.47:6443 --token 1etx8g.fj7xo13f52et1r6p \
+        --discovery-token-ca-cert-hash sha256:896fc0c9302bd4b3fab1bc843a24ff9b0e4275464f60db7af254514f62d8bf33
+
+#Installing network solution https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-networking-model
+
+#weave install command page  https://www.weave.works/docs/net/latest/kubernetes/kube-addon/ 
+
+	kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+
+Adding users on the cluster  , run bellow in each worker node  , you can run  kubeadm token create --print-join-command to generate kubeadm join command with token 
+
+  kubeadm join 172.31.27.47:6443 --token 1etx8g.fj7xo13f52et1r6p \
+        --discovery-token-ca-cert-hash sha256:896fc0c9302bd4b3fab1bc843a24ff9b0e4275464f60db7af254514f62d8bf33
+
+	
